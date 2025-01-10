@@ -138,5 +138,28 @@ def total_sales_by_genre():
     conn.close()
     return [dict(sale) for sale in sales]
 
+@app.get("/books/search")
+def search_books(query: str):
+    """
+    Search for books by title or author.
+    :param query: The search term.
+    :return: A list of books that match the query.
+    """
+    conn = get_db_connection()
+    books = conn.execute(
+        """
+        SELECT * FROM Books
+        WHERE Title LIKE ? OR Author LIKE ?
+        """,
+        (f"%{query}%", f"%{query}%"),
+    ).fetchall()
+    conn.close()
+
+    if not books:
+        raise HTTPException(status_code=404, detail="No books found matching the query.")
+
+    return [dict(book) for book in books]
+
+
 # Run the application using Uvicorn
 # Command: uvicorn script_name:app --reload
