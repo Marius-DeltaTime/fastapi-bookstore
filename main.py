@@ -160,6 +160,16 @@ def search_books(query: str):
 
     return [dict(book) for book in books]
 
+@app.get("/books/genre/{genre}", response_model=List[Book])
+def get_books_by_genre(genre: str):
+    conn = get_db_connection()
+    books = conn.execute(
+        "SELECT * FROM Books WHERE Genre = ?", (genre,)
+    ).fetchall()
+    conn.close()
+    return [dict(book) for book in books]
+
+
 
 # Run the application using Uvicorn
 # Command: uvicorn script_name:app --reload
