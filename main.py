@@ -1,5 +1,15 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+# Needs further testing
+# Should ensure that any book created or updated via the API will have a price of at least 0 and a stock of at least 0
+from pydantic import BaseModel, Field
+
+class Book(BaseModel):
+    title: str
+    author: str
+    genre: str
+    price: float = Field(..., ge=0, description="Price must be non-negative")
+    stock: int = Field(..., ge=0, description="Stock must be non-negative")
+
 import sqlite3
 from typing import List
 
