@@ -126,13 +126,32 @@ def add_customer(customer: Customer):
 @app.post("/sales")
 def add_sale(sale: Sale):
     conn = get_db_connection()
+    # Check if the book exists and has enough stock
+    book = conn.execute(
+        "SELECT Stock FROM Books WHERE BookID = ?", (sale.book_id,)
+    ).fetchone()
+
+    if not book:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Book not found.")
+
+    if book["Stock"] < sale.quantity:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Not enough stock available.")
+
+    # Record the sale
     conn.execute(
         "INSERT INTO Sales (BookID, CustomerID, SaleDate, Quantity, TotalAmount) VALUES (?, ?, ?, ?, ?)",
         (sale.book_id, sale.customer_id, sale.sale_date, sale.quantity, sale.total_amount),
     )
+    # Update the stock
+    conn.execute(
+        "UPDATE Books SET Stock = Stock - ? WHERE BookID = ?",
+        (sale.quantity, sale.book_id),
+    )
     conn.commit()
     conn.close()
-    return {"message": "Sale recorded successfully"}
+    return {"message": "Sale recorded successfully, and stock updated."}
 
 @app.get("/sales/total-by-genre")
 def total_sales_by_genre():
