@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException
 import sqlite3
 from typing import List
-# Needs further testing
-# Should ensure that any book created or updated via the API will have a price of at least 0 and a stock of at least 0
 from pydantic import BaseModel, Field
 
 class Book(BaseModel):
@@ -11,8 +9,6 @@ class Book(BaseModel):
     genre: str
     price: float = Field(..., ge=0, description="Price must be non-negative")
     stock: int = Field(..., ge=0, description="Stock must be non-negative")
-
-
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -49,9 +45,11 @@ class Sale(BaseModel):
 
 # Routes for Books
 @app.get("/books", response_model=List[Book])
-def get_books():
+def get_books(limit: int = 10, offset: int = 0):
     conn = get_db_connection()
-    books = conn.execute("SELECT * FROM Books").fetchall()
+    books = conn.execute(
+        "SELECT * FROM Books LIMIT ? OFFSET ?", (limit, offset)
+    ).fetchall()
     conn.close()
     return [
         {
@@ -64,7 +62,6 @@ def get_books():
         }
         for book in books
     ]
-
 
 @app.post("/books")
 def add_book(book: Book):
@@ -98,9 +95,11 @@ def delete_book(book_id: int):
 
 # Routes for Customers
 @app.get("/customers", response_model=List[Customer])
-def get_customers():
+def get_customers(limit: int = 10, offset: int = 0):
     conn = get_db_connection()
-    customers = conn.execute("SELECT * FROM Customers").fetchall()
+    customers = conn.execute(
+        "SELECT * FROM Customers LIMIT ? OFFSET ?", (limit, offset)
+    ).fetchall()
     conn.close()
     return [
         {
@@ -198,8 +197,6 @@ def get_books_by_genre(genre: str):
     ).fetchall()
     conn.close()
     return [dict(book) for book in books]
-
-
 
 # Run the application using Uvicorn
 # Command: uvicorn script_name:app --reload
