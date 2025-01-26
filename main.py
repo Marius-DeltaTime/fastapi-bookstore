@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 import sqlite3
 from typing import List
 from pydantic import BaseModel, Field
+import random
 
 class Book(BaseModel):
     title: str
@@ -197,6 +198,30 @@ def get_books_by_genre(genre: str):
     ).fetchall()
     conn.close()
     return [dict(book) for book in books]
+
+@app.get("/books/recommendation", response_model=Book)
+def recommend_book():
+    """
+    Recommend a random book from the database.
+    :return: Details of the recommended book.
+    """
+    conn = get_db_connection()
+    books = conn.execute("SELECT * FROM Books").fetchall()
+    conn.close()
+
+    if not books:
+        raise HTTPException(status_code=404, detail="No books available for recommendation.")
+
+    random_book = random.choice(books)
+    return {
+        "book_id": random_book["BookID"],
+        "title": random_book["Title"],
+        "author": random_book["Author"],
+        "genre": random_book["Genre"],
+        "price": random_book["Price"],
+        "stock": random_book["Stock"],
+    }
+
 
 # Run the application using Uvicorn
 # Command: uvicorn script_name:app --reload
