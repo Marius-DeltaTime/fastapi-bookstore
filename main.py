@@ -190,6 +190,28 @@ def search_books(query: str):
 
     return [dict(book) for book in books]
 
+@app.get("/books/{book_id}", response_model=Book)
+def get_book_details(book_id: int):
+    """
+    Get details of a specific book.
+    """
+    conn = get_db_connection()
+    book = conn.execute("SELECT * FROM Books WHERE BookID = ?", (book_id,)).fetchone()
+    conn.close()
+
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found.")
+
+    return {
+        "book_id": book["BookID"],
+        "title": book["Title"],
+        "author": book["Author"],
+        "genre": book["Genre"],
+        "price": book["Price"],
+        "stock": book["Stock"],
+    }
+
+
 @app.get("/books/genre/{genre}", response_model=List[Book])
 def get_books_by_genre(genre: str):
     conn = get_db_connection()
