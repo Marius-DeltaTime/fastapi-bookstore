@@ -211,7 +211,6 @@ def get_book_details(book_id: int):
         "stock": book["Stock"],
     }
 
-
 @app.get("/books/genre/{genre}", response_model=List[Book])
 def get_books_by_genre(genre: str):
     conn = get_db_connection()
@@ -243,6 +242,29 @@ def recommend_book():
         "price": random_book["Price"],
         "stock": random_book["Stock"],
     }
+
+@app.get("/customers/{customer_id}/sales", response_model=List[Sale])
+def get_customer_sales(customer_id: int):
+    """
+    Fetch sales history for a specific customer.
+    """
+    conn = get_db_connection()
+    sales = conn.execute(
+        """
+        SELECT S.BookID, S.CustomerID, S.SaleDate, S.Quantity, S.TotalAmount, B.Title AS BookTitle
+        FROM Sales S
+        JOIN Books B ON S.BookID = B.BookID
+        WHERE S.CustomerID = ?
+        """,
+        (customer_id,),
+    ).fetchall()
+    conn.close()
+
+    if not sales:
+        raise HTTPException(status_code=404, detail="No sales found for this customer.")
+
+    return [dict(sale) for sale in sales]
+
 
 
 # Run the application using Uvicorn
