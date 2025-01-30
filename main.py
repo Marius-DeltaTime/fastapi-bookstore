@@ -123,6 +123,25 @@ def add_customer(customer: Customer):
     conn.close()
     return {"message": "Customer added successfully"}
 
+@app.put("/customers/{customer_id}")
+def update_customer(customer_id: int, customer: Customer):
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE Customers SET Name = ?, Email = ?, Phone = ? WHERE CustomerID = ?",
+        (customer.name, customer.email, customer.phone, customer_id),
+    )
+    conn.commit()
+    conn.close()
+    return {"message": "Customer updated successfully"}
+
+@app.delete("/customers/{customer_id}")
+def delete_customer(customer_id: int):
+    conn = get_db_connection()
+    conn.execute("DELETE FROM Customers WHERE CustomerID = ?", (customer_id,))
+    conn.commit()
+    conn.close()
+    return {"message": "Customer deleted successfully"}
+
 # Routes for Sales
 @app.post("/sales")
 def add_sale(sale: Sale):
@@ -153,119 +172,3 @@ def add_sale(sale: Sale):
     conn.commit()
     conn.close()
     return {"message": "Sale recorded successfully, and stock updated."}
-
-@app.get("/sales/total-by-genre")
-def total_sales_by_genre():
-    conn = get_db_connection()
-    sales = conn.execute(
-        """
-        SELECT Genre, SUM(S.TotalAmount) AS TotalSales
-        FROM Sales S
-        JOIN Books B ON S.BookID = B.BookID
-        GROUP BY Genre
-        """
-    ).fetchall()
-    conn.close()
-    return [dict(sale) for sale in sales]
-
-@app.get("/books/search")
-def search_books(query: str):
-    """
-    Search for books by title or author.
-    :param query: The search term.
-    :return: A list of books that match the query.
-    """
-    conn = get_db_connection()
-    books = conn.execute(
-        """
-        SELECT * FROM Books
-        WHERE Title LIKE ? OR Author LIKE ?
-        """,
-        (f"%{query}%", f"%{query}%"),
-    ).fetchall()
-    conn.close()
-
-    if not books:
-        raise HTTPException(status_code=404, detail="No books found matching the query.")
-
-    return [dict(book) for book in books]
-
-@app.get("/books/{book_id}", response_model=Book)
-def get_book_details(book_id: int):
-    """
-    Get details of a specific book.
-    """
-    conn = get_db_connection()
-    book = conn.execute("SELECT * FROM Books WHERE BookID = ?", (book_id,)).fetchone()
-    conn.close()
-
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found.")
-
-    return {
-        "book_id": book["BookID"],
-        "title": book["Title"],
-        "author": book["Author"],
-        "genre": book["Genre"],
-        "price": book["Price"],
-        "stock": book["Stock"],
-    }
-
-@app.get("/books/genre/{genre}", response_model=List[Book])
-def get_books_by_genre(genre: str):
-    conn = get_db_connection()
-    books = conn.execute(
-        "SELECT * FROM Books WHERE Genre = ?", (genre,)
-    ).fetchall()
-    conn.close()
-    return [dict(book) for book in books]
-
-@app.get("/books/recommendation", response_model=Book)
-def recommend_book():
-    """
-    Recommend a random book from the database.
-    :return: Details of the recommended book.
-    """
-    conn = get_db_connection()
-    books = conn.execute("SELECT * FROM Books").fetchall()
-    conn.close()
-
-    if not books:
-        raise HTTPException(status_code=404, detail="No books available for recommendation.")
-
-    random_book = random.choice(books)
-    return {
-        "book_id": random_book["BookID"],
-        "title": random_book["Title"],
-        "author": random_book["Author"],
-        "genre": random_book["Genre"],
-        "price": random_book["Price"],
-        "stock": random_book["Stock"],
-    }
-
-@app.get("/customers/{customer_id}/sales", response_model=List[Sale])
-def get_customer_sales(customer_id: int):
-    """
-    Fetch sales history for a specific customer.
-    """
-    conn = get_db_connection()
-    sales = conn.execute(
-        """
-        SELECT S.BookID, S.CustomerID, S.SaleDate, S.Quantity, S.TotalAmount, B.Title AS BookTitle
-        FROM Sales S
-        JOIN Books B ON S.BookID = B.BookID
-        WHERE S.CustomerID = ?
-        """,
-        (customer_id,),
-    ).fetchall()
-    conn.close()
-
-    if not sales:
-        raise HTTPException(status_code=404, detail="No sales found for this customer.")
-
-    return [dict(sale) for sale in sales]
-
-
-
-# Run the application using Uvicorn
-# Command: uvicorn script_name:app --reload
