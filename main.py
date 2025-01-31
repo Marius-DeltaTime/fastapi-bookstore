@@ -172,3 +172,31 @@ def add_sale(sale: Sale):
     conn.commit()
     conn.close()
     return {"message": "Sale recorded successfully, and stock updated."}
+
+@app.get("/sales/book/{book_id}")
+def get_total_sales_by_book(book_id: int):
+    """
+    Get the total sales revenue and quantity sold for a specific book.
+    """
+    conn = get_db_connection()
+    sales = conn.execute
+    (
+        """
+        SELECT SUM(S.Quantity) AS TotalQuantity, SUM(S.TotalAmount) AS TotalRevenue
+        FROM Sales S
+        WHERE S.BookID = ?
+        """,
+        (book_id,),
+    ).fetchone()
+    conn.close()
+
+    if not sales or sales["TotalQuantity"] is None:
+        raise HTTPException(status_code=404, detail="No sales found for this book.")
+
+    return 
+    {
+        "book_id": book_id,
+        "total_quantity_sold": sales["TotalQuantity"],
+        "total_revenue": sales["TotalRevenue"],
+    }
+
