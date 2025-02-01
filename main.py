@@ -200,3 +200,28 @@ def get_total_sales_by_book(book_id: int):
         "total_revenue": sales["TotalRevenue"],
     }
 
+@app.get("/sales/top-books")
+def get_top_selling_books(limit: int = 5):
+    """
+    Get the top-selling books based on total quantity sold.
+    """
+    conn = get_db_connection()
+    books = conn.execute(
+        """
+        SELECT B.BookID, B.Title, B.Author, B.Genre, SUM(S.Quantity) AS TotalSold
+        FROM Sales S
+        JOIN Books B ON S.BookID = B.BookID
+        GROUP BY B.BookID
+        ORDER BY TotalSold DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    conn.close()
+
+    if not books:
+        raise HTTPException(status_code=404, detail="No sales data available.")
+
+    return [dict(book) for book in books]
+
+
