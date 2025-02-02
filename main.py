@@ -224,4 +224,28 @@ def get_top_selling_books(limit: int = 5):
 
     return [dict(book) for book in books]
 
+@app.get("/customers/{customer_id}/total-spent")
+def get_customer_total_spent(customer_id: int):
+    """
+    Get the total amount a customer has spent on purchases.
+    """
+    conn = get_db_connection()
+    total_spent = conn.execute(
+        """
+        SELECT SUM(S.TotalAmount) AS TotalSpent
+        FROM Sales S
+        WHERE S.CustomerID = ?
+        """,
+        (customer_id,),
+    ).fetchone()
+    conn.close()
+
+    if not total_spent or total_spent["TotalSpent"] is None:
+        raise HTTPException(status_code=404, detail="No purchases found for this customer.")
+
+    return {
+        "customer_id": customer_id,
+        "total_spent": total_spent["TotalSpent"],
+    }
+
 
