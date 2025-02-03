@@ -248,4 +248,31 @@ def get_customer_total_spent(customer_id: int):
         "total_spent": total_spent["TotalSpent"],
     }
 
+@app.get("/sales/popular-genre")
+def get_most_popular_genre():
+    """
+    Get the most popular book genre based on total sales.
+    """
+    conn = get_db_connection()
+    genre = conn.execute(
+        """
+        SELECT B.Genre, SUM(S.Quantity) AS TotalSold
+        FROM Sales S
+        JOIN Books B ON S.BookID = B.BookID
+        GROUP BY B.Genre
+        ORDER BY TotalSold DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    conn.close()
+
+    if not genre:
+        raise HTTPException(status_code=404, detail="No sales data available.")
+
+    return {
+        "genre": genre["Genre"],
+        "total_sold": genre["TotalSold"],
+    }
+
+
 
